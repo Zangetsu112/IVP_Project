@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import skimage
+import cv2
 
 
 class PreprocessingFunctions:
@@ -45,8 +46,8 @@ class PreprocessingFunctions:
 
 
 if __name__ == '__main__':
-    image = skimage.color.rgb2gray(skimage.data.astronaut())
-    plt.figure()
+    image = skimage.color.rgb2gray(cv2.imread('./all-mias/mdb001.pgm'))
+    plt.figure(figsize=(8, 8))
     plt.subplot(2, 2, 1)
     plt.imshow(image, cmap='gray')
     plt.title('Original Image')
