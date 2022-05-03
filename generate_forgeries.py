@@ -1,4 +1,5 @@
 from forgery_functions import extract_splice, add_splice
+import numpy as np
 import pickle
 import csv
 from scipy.sparse import csr_matrix
@@ -56,6 +57,9 @@ to_splice = left_over[0:50]
 multiple_splice = left_over[50:100]
 pristine_images = left_over[100:]
 
+# Initiate DataFrame
+training_data = pd.DataFrame(columns= ['Original', 'Forged', 'Difference','Type'])
+
 def get_forged(image, splice, forge_type='copy_move', rng=100):
     if forge_type == 'splicing':
         splice = random.choice(generated_splices)
@@ -65,12 +69,33 @@ def get_forged(image, splice, forge_type='copy_move', rng=100):
         _, forged_image = add_splice(image, splice, rng)
     return forged_image
 
+# Pristine Images
+for image in pristine_images:
+    gray_image = cv2.cvtColor(cv2.imread(image), cv2.COLOR_RGB2GRAY)
+    dict_ = {
+                'Original': image, 
+                'Forged': gray_image, 
+                'Difference': csr_matrix(np.zeros((gray_image.shape), dtype=int)), 
+                'Type': 'Pristine'
+            }
+    training_data = training_data.append(dict_, ignore_index=True)
+print('Finished with Pristine images')
+
+
 # Copy Move forgeries
 for path, splice in image_and_splice[0:50]:
     image = cv2.imread(path)
     gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     forged_image = get_forged(gray_image, splice)
     difference = csr_matrix(gray_image - forged_image)
+    dict_ = {
+                'Original': path, 
+                'Forged': forged_image, 
+                'Difference': difference, 
+                'Type': 'Copy-Move'
+            }
+    training_data = training_data.append(dict_, ignore_index=True)
+print("Finished with copy move forgery...")
 
 # Multiple copy move forgeries in one image
 for path, splice in image_and_splice[50:100]:
@@ -81,6 +106,14 @@ for path, splice in image_and_splice[50:100]:
     for next_splice in range(1, 3):
         forged_image = get_forged(forged_image, splice)
     difference = csr_matrix(gray_image - forged_image)
+    dict_ = {
+                'Original': path, 
+                'Forged': forged_image, 
+                'Difference': difference, 
+                'Type': 'Multiple-Copy-Move'
+            }
+    training_data = training_data.append(dict_, ignore_index=True)
+print("Finished with Multiple Copy Move Forgery...")
 
 # Splicing Forgery
 for path in to_splice:
@@ -88,6 +121,14 @@ for path in to_splice:
     gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     forged_image = get_forged(gray_image, None, forge_type='splicing')
     difference = csr_matrix(gray_image - forged_image)
+    dict_ = {
+                'Original': path, 
+                'Forged': forged_image, 
+                'Difference': difference, 
+                'Type': 'Splicing'
+            }
+    training_data = training_data.append(dict_, ignore_index=True)
+print("Finished with Spicing Forgery...")
 
 # Multiple Splicing Forgery 
 for path in multiple_splice:
@@ -98,3 +139,13 @@ for path in multiple_splice:
     for next_splice in range(1, 3):
         forged_image = get_forged(forged_image, None, forge_type='splicing')
     difference = csr_matrix(gray_image - forged_image)
+    dict_ = {
+                'Original': path, 
+                'Forged': forged_image, 
+                'Difference': difference, 
+                'Type': 'Multiple-Splicing'
+            }
+    training_data = training_data.append(dict_, ignore_index=True)
+print('Finished with multiple splicing...')
+
+training_data.to_pickle('./training_data.pkl')
